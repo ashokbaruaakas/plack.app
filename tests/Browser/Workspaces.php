@@ -17,7 +17,7 @@ it('can create a workspace', function (): void {
         ->click('@create-workspace-submit')
         ->assertMissing('@create-workspace-dialog');
 
-    expect($user->workspaces()->where('name', 'Acme')->exists())->toBeTrue();
+    expect($user->ownedWorkspaces()->where('name', 'Acme')->exists())->toBeTrue();
 });
 
 it('validates the workspace name when creating', function (): void {
@@ -32,21 +32,21 @@ it('validates the workspace name when creating', function (): void {
         ->click('@create-workspace-submit')
         ->assertPresent('@input-error');
 
-    expect($user->workspaces()->count())->toBe(0);
+    expect($user->ownedWorkspaces()->count())->toBe(0);
 });
 
-it('can update a workspace', function (): void {
+it('can update a workspace from its settings page', function (): void {
     $user = User::factory()->create();
-    $workspace = Workspace::factory()->for($user, 'owner')->create(['name' => 'Acme']);
+    $workspace = Workspace::factory()->for($user, 'owner')->create(['name' => 'Acme', 'slug' => 'acme']);
 
     $this->actingAs($user);
 
-    $page = visit('/workspaces');
+    $page = visit(route('workspace.settings', $workspace));
 
-    $page->click('@edit-workspace-trigger')
-        ->fill('name', 'Globex')
-        ->click('@edit-workspace-submit')
-        ->assertMissing('@edit-workspace-dialog');
+    $page->fill('name', 'Globex')
+        ->fill('slug', 'globex')
+        ->click('@update-workspace-submit');
 
-    expect($workspace->refresh()->name)->toBe('Globex');
+    expect($workspace->refresh()->name)->toBe('Globex')
+        ->and($workspace->slug)->toBe('globex');
 });

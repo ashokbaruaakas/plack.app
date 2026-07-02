@@ -20,24 +20,23 @@ type Workspace = WorkspaceSummary & {
     channels: Channel[];
 };
 
-type Paginated<T> = {
-    data: T[];
-};
-
 export default function ChannelShow({
     workspace,
     channel,
     workspaces,
+    canManage = false,
 }: {
     workspace: Workspace;
     channel: Channel;
-    workspaces?: Paginated<WorkspaceSummary>;
+    workspaces?: WorkspaceSummary[];
+    canManage?: boolean;
 }) {
     return (
         <WorkspaceLayout
             workspace={workspace}
-            workspaces={workspaces?.data}
+            workspaces={workspaces}
             activeChannelSlug={channel.slug}
+            canManage={canManage}
         >
             <Head title={channel.name} />
 
@@ -52,17 +51,19 @@ export default function ChannelShow({
                     </span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                    <CreateChannelDialog workspaceSlug={workspace.slug} />
-                    <EditChannelDialog
-                        workspaceSlug={workspace.slug}
-                        channel={channel}
-                    />
-                    <DeleteChannelDialog
-                        workspaceSlug={workspace.slug}
-                        channel={channel}
-                    />
-                </div>
+                {canManage && (
+                    <div className="flex items-center gap-1">
+                        <CreateChannelDialog workspaceSlug={workspace.slug} />
+                        <EditChannelDialog
+                            workspaceSlug={workspace.slug}
+                            channel={channel}
+                        />
+                        <DeleteChannelDialog
+                            workspaceSlug={workspace.slug}
+                            channel={channel}
+                        />
+                    </div>
+                )}
             </header>
 
             {/* message log — bottom-anchored */}

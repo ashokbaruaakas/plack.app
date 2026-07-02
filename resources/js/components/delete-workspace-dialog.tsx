@@ -16,6 +16,7 @@ import {
 type Workspace = {
     id: string;
     name: string;
+    slug: string;
 };
 
 export default function DeleteWorkspaceDialog({
@@ -29,26 +30,26 @@ export default function DeleteWorkspaceDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button
-                    variant="ghost"
-                    size="icon"
+                    variant="destructive"
+                    size="sm"
                     aria-label="Delete workspace"
+                    data-test="delete-workspace-trigger"
                 >
                     <Trash2 />
+                    Delete workspace
                 </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogTitle>Delete workspace</DialogTitle>
+                <DialogTitle>Delete “{workspace.name}”?</DialogTitle>
                 <DialogDescription>
-                    Are you sure you want to delete{' '}
-                    <span className="font-medium">{workspace.name}</span>? This
-                    cannot be undone.
+                    Once deleted, this workspace and all of its members and
+                    invitations will be permanently removed. This cannot be
+                    undone.
                 </DialogDescription>
 
                 <Form
-                    {...WorkspaceController.destroy.form(workspace.id)}
-                    options={{
-                        preserveScroll: true,
-                    }}
+                    {...WorkspaceController.destroy.form(workspace.slug)}
+                    options={{ preserveScroll: true }}
                     onSuccess={() => setOpen(false)}
                     className="space-y-6"
                 >
@@ -62,8 +63,9 @@ export default function DeleteWorkspaceDialog({
                                 type="submit"
                                 variant="destructive"
                                 disabled={processing}
+                                data-test="delete-workspace-submit"
                             >
-                                Delete
+                                Delete workspace
                             </Button>
                         </DialogFooter>
                     )}

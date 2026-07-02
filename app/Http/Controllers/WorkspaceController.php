@@ -21,7 +21,8 @@ final readonly class WorkspaceController
 {
     public function index(#[CurrentUser] User $user): RedirectResponse|Response
     {
-        $workspace = $user->workspaces()->oldest()->first();
+        $workspace = $user->ownedWorkspaces()->oldest()->first()
+            ?? $user->memberWorkspaces()->oldest()->first();
 
         if ($workspace instanceof Workspace) {
             return to_route('workspace.show', $workspace);
@@ -84,6 +85,6 @@ final readonly class WorkspaceController
             'message' => __('Workspace deleted.'),
         ]);
 
-        return back();
+        return to_route('workspace.index');
     }
 }

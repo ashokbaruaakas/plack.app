@@ -24,7 +24,7 @@ final readonly class DeleteUser
             /**  @todo Make sure we dont delete messages from the groups i dont own */
             $user->messages()->each(fn (Message $message) => $this->deleteMessage->handle($message));
 
-            $user->workspaces()->each(fn (Workspace $workspace) => $this->deleteWorkspace->handle($workspace));
+            $user->ownedWorkspaces()->each(fn (Workspace $workspace) => $this->deleteWorkspace->handle($workspace));
 
             $user->delete();
         });

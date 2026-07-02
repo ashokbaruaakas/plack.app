@@ -28,6 +28,7 @@ final readonly class ChannelController
             'workspace' => $workspace->load(['channels' => fn (HasMany $channels) => $channels->latest()]),
             'channel' => $channel,
             'workspaces' => $listWorkspace->get($user),
+            'canManage' => $user->is($workspace->owner),
         ]);
     }
 

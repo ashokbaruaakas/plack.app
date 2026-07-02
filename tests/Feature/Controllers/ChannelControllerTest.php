@@ -29,8 +29,45 @@ it('can show a channel', function (): void {
             ->where('channel.id', $channel->id)
             ->where('channel.name', 'general')
             ->where('workspace.id', $workspace->id)
+            ->where('canManage', true)
             ->has('workspace.channels')
         );
+});
+
+it('lets a member view a channel without managing it', function (): void {
+    $member = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+    $channel = Channel::factory()->for($workspace)->create();
+    $workspace->members()->attach($member);
+
+    $this->actingAs($member)->get(route('channel.show', [$workspace, $channel]))
+        ->assertStatus(200)
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('channel/show')
+            ->where('canManage', false)
+        );
+});
+
+it('does not let a non-member view a channel', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+    $channel = Channel::factory()->for($workspace)->create();
+
+    $this->actingAs($user)->get(route('channel.show', [$workspace, $channel]))
+        ->assertNotFound();
+});
+
+it('does not let a member manage channels', function (): void {
+    $member = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+    Channel::factory()->for($workspace)->create();
+    $channel = Channel::factory()->for($workspace)->create();
+    $workspace->members()->attach($member);
+
+    $this->actingAs($member)->delete(route('channel.destroy', [$workspace, $channel]))
+        ->assertNotFound();
+
+    expect($workspace->channels()->count())->toBe(2);
 });
 
 it('can create a channel', function (): void {

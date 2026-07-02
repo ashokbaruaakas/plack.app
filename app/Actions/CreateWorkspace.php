@@ -17,7 +17,7 @@ final readonly class CreateWorkspace
     public function handle(User $user, string $name): Workspace
     {
         return DB::transaction(function () use ($user, $name): Workspace {
-            $workspace = $user->workspaces()->create([
+            $workspace = $user->ownedWorkspaces()->create([
                 'name' => $name,
             ]);
 

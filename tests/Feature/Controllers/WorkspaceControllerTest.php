@@ -5,12 +5,22 @@ declare(strict_types=1);
 use App\Models\Channel;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Models\WorkspaceInvitation;
 use Inertia\Support\SessionKey;
 use Inertia\Testing\AssertableInertia as Assert;
 
-it('redirects to the first workspace when the user has one', function (): void {
+it('redirects to the first workspace when the user owns one', function (): void {
     $user = User::factory()->create();
     $workspace = Workspace::factory()->for($user, 'owner')->create();
+
+    $this->actingAs($user)->get('workspaces')
+        ->assertRedirectToRoute('workspace.show', $workspace);
+});
+
+it('redirects to an invited workspace when the user owns none', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+    $workspace->members()->attach($user);
 
     $this->actingAs($user)->get('workspaces')
         ->assertRedirectToRoute('workspace.show', $workspace);
@@ -28,11 +38,40 @@ it('shows an empty state when the user has no workspaces', function (): void {
 
 it('redirects a workspace to its first channel', function (): void {
     $user = User::factory()->create();
-    $workspace = Workspace::factory()->for($user, 'owner')->create(['name' => 'Hashane']);
+    $workspace = Workspace::factory()->for($user, 'owner')->create();
     $channel = Channel::factory()->for($workspace)->create();
 
     $this->actingAs($user)->get(route('workspace.show', $workspace))
         ->assertRedirectToRoute('channel.show', [$workspace, $channel]);
+});
+
+it('shows the workspace settings page', function (): void {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->for($user, 'owner')->create(['name' => 'Hashane']);
+    Channel::factory()->for($workspace)->create();
+
+    $workspace->members()->attach(User::factory()->create());
+    WorkspaceInvitation::factory()->for($workspace)->create(['email' => 'pending@example.com']);
+
+    $this->actingAs($user)->get(route('workspace.settings', $workspace))
+        ->assertStatus(200)
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('workspace/settings')
+            ->where('workspace.id', $workspace->id)
+            ->where('workspace.name', 'Hashane')
+            ->where('owner.id', $user->id)
+            ->has('members', 1)
+            ->has('invitations', 1)
+        );
+});
+
+it('does not let a non-owner open the workspace settings page', function (): void {
+    $member = User::factory()->create();
+    $workspace = Workspace::factory()->create();
+    $workspace->members()->attach($member);
+
+    $this->actingAs($member)->get(route('workspace.settings', $workspace))
+        ->assertNotFound();
 });
 
 it('can create workspace', function (): void {
@@ -50,7 +89,7 @@ it('can create workspace', function (): void {
             ],
         ]);
 
-    $workspaces = $user->workspaces;
+    $workspaces = $user->ownedWorkspaces;
 
     expect($workspaces->count())->toBe(1)
         ->and($workspaces->first()->name)->toBe('Test Workspace')
@@ -66,7 +105,7 @@ it('validates the workspace name', function (): void {
 
     $response->assertSessionHasErrors('name');
 
-    expect($user->workspaces()->count())->toBe(0);
+    expect($user->ownedWorkspaces()->count())->toBe(0);
 });
 
 it('rejects a workspace name already owned by the same user', function (): void {
@@ -79,7 +118,7 @@ it('rejects a workspace name already owned by the same user', function (): void 
 
     $response->assertSessionHasErrors('name');
 
-    expect($user->workspaces()->where('name', 'Test Workspace')->count())->toBe(1);
+    expect($user->ownedWorkspaces()->where('name', 'Test Workspace')->count())->toBe(1);
 });
 
 it('allows different users to have the same workspace name', function (): void {
@@ -94,7 +133,7 @@ it('allows different users to have the same workspace name', function (): void {
 
     $response->assertSessionHasNoErrors();
 
-    expect($user->workspaces()->where('name', 'Test Workspace')->count())->toBe(1);
+    expect($user->ownedWorkspaces()->where('name', 'Test Workspace')->count())->toBe(1);
 });
 
 it('generates a unique slug when the name is already taken', function (): void {
@@ -109,7 +148,7 @@ it('generates a unique slug when the name is already taken', function (): void {
 
     $response->assertSessionHasNoErrors();
 
-    expect($user->workspaces()->where('slug', 'test-workspace-2')->exists())->toBeTrue();
+    expect($user->ownedWorkspaces()->where('slug', 'test-workspace-2')->exists())->toBeTrue();
 });
 
 it('can update workspace name', function (): void {
@@ -231,7 +270,7 @@ it('can delete a workspace', function (): void {
 
     $response = $this->actingAs($user)->delete(route('workspace.destroy', $workspace));
 
-    $response->assertRedirectBack()
+    $response->assertRedirect(route('workspace.index'))
         ->assertSessionHas(SessionKey::FLASH_DATA, [
             'toast' => [
                 'type' => 'success',
@@ -239,16 +278,15 @@ it('can delete a workspace', function (): void {
             ],
         ]);
 
-    expect($user->workspaces()->count())->toBe(0);
+    expect(Workspace::query()->whereKey($workspace->id)->exists())->toBeFalse();
 });
 
-it('cannot delete a workspace owned by another user', function (): void {
+it('can not delete a workspace if not owner', function (): void {
     $user = User::factory()->create();
-    $otherUser = User::factory()->create();
-    $workspace = Workspace::factory()->for($otherUser, 'owner')->create();
+    $workspace = Workspace::factory()->create();
 
     $this->actingAs($user)->delete(route('workspace.destroy', $workspace))
-        ->assertNotFound();
+        ->assertStatus(404);
 
-    expect($otherUser->workspaces()->count())->toBe(1);
+    expect(Workspace::query()->whereKey($workspace->id)->exists())->toBeTrue();
 });

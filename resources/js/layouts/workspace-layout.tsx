@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren, useState } from 'react';
 import CreateWorkspaceDialog from '@/components/create-workspace-dialog';
+import PendingInvitations from '@/components/pending-invitations';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,7 +12,10 @@ import {
 import { UserMenuContent } from '@/components/user-menu-content';
 import { avatarColorFor, handleFor, initialsFor } from '@/lib/user';
 import { show as channelShow } from '@/routes/channel';
-import { show as workspaceShow } from '@/routes/workspace';
+import {
+    settings as workspaceSettings,
+    show as workspaceShow,
+} from '@/routes/workspace';
 
 type Channel = {
     id: string;
@@ -33,15 +37,17 @@ type WorkspaceLayoutProps = PropsWithChildren<{
     workspace: Workspace;
     workspaces?: WorkspaceSummary[];
     activeChannelSlug?: string;
+    canManage?: boolean;
 }>;
 
 export default function WorkspaceLayout({
     workspace,
     workspaces = [],
     activeChannelSlug,
+    canManage = false,
     children,
 }: WorkspaceLayoutProps) {
-    const { auth } = usePage().props;
+    const { auth, pendingInvitations } = usePage().props;
     const user = auth.user;
 
     const [createOpen, setCreateOpen] = useState(false);
@@ -79,8 +85,22 @@ export default function WorkspaceLayout({
                                 </DropdownMenuItem>
                             ))}
 
-                            {others.length > 0 && (
+                            {(others.length > 0 || canManage) && (
                                 <DropdownMenuSeparator className="bg-line" />
+                            )}
+
+                            {canManage && (
+                                <DropdownMenuItem
+                                    asChild
+                                    className="rounded-none text-[12.5px] text-dim focus:bg-ink-800 focus:text-fg"
+                                >
+                                    <Link
+                                        href={workspaceSettings(workspace.slug)}
+                                        data-test="workspace-settings-link"
+                                    >
+                                        workspace settings
+                                    </Link>
+                                </DropdownMenuItem>
                             )}
 
                             <DropdownMenuItem
@@ -130,11 +150,23 @@ export default function WorkspaceLayout({
                             );
                         })}
                     </div>
+
+                    {pendingInvitations.length > 0 && (
+                        <div className="mt-6">
+                            <div className="mb-[10px] text-[9px] tracking-[.22em] text-mute uppercase">
+                                invitations
+                            </div>
+
+                            <PendingInvitations
+                                invitations={pendingInvitations}
+                            />
+                        </div>
+                    )}
                 </nav>
 
                 {/* current user */}
                 <DropdownMenu>
-                    <DropdownMenuTrigger className="flex w-full items-center gap-[9px] border-t border-line px-4 py-3 text-xs text-dim outline-none transition-colors hover:text-fg data-[state=open]:bg-ink-800 data-[state=open]:text-fg">
+                    <DropdownMenuTrigger className="flex w-full items-center gap-[9px] border-t border-line px-4 py-3 text-xs text-dim transition-colors outline-none hover:text-fg data-[state=open]:bg-ink-800 data-[state=open]:text-fg">
                         <span
                             className={`flex h-[22px] w-[22px] items-center justify-center text-[10px] font-semibold text-ink-900 ${avatarColorFor(user.id)}`}
                         >

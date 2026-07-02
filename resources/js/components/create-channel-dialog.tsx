@@ -26,12 +26,12 @@ export default function CreateChannelDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
+                <Button data-test="create-channel-trigger">
                     <Plus />
                     New channel
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent data-test="create-channel-dialog">
                 <DialogTitle>Create channel</DialogTitle>
                 <DialogDescription>
                     Enter a name for your new channel.
@@ -72,7 +72,11 @@ export default function CreateChannelDialog({
                                     </Button>
                                 </DialogClose>
 
-                                <Button type="submit" disabled={processing}>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    data-test="create-channel-submit"
+                                >
                                     Create
                                 </Button>
                             </DialogFooter>

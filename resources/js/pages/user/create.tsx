@@ -4,14 +4,27 @@ import InputError from '@/components/input-error';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
+type WorkspaceInvitation = {
+    code: string;
+    workspace: string;
+};
+
+type Props = {
+    workspaceInvitation?: WorkspaceInvitation | null;
+};
+
 const fieldWrap =
     'flex h-[46px] items-center gap-[9px] border border-line bg-ink-950 px-[14px] transition-colors focus-within:border-amber';
 const inputClass =
     'min-w-0 flex-1 bg-transparent text-[13.5px] text-fg caret-green outline-none placeholder:text-faint';
 const labelClass = 'mb-2 text-[9px] uppercase tracking-[.22em] text-mute';
 
-export default function Register() {
+export default function Register({ workspaceInvitation }: Props) {
     const [showPw, setShowPw] = useState(false);
+
+    const loginHref = workspaceInvitation
+        ? login.url({ query: { invitation: workspaceInvitation.code } })
+        : login();
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-ink-950 font-mono text-fg">
@@ -28,7 +41,7 @@ export default function Register() {
             <div className="absolute top-6 right-9 z-10 text-xs tracking-[.02em] text-[#5a5344]">
                 already have one?{' '}
                 <Link
-                    href={login()}
+                    href={loginHref}
                     className="border-b border-line text-dim transition-colors hover:text-amber"
                 >
                     log in →
@@ -48,6 +61,17 @@ export default function Register() {
                         Somewhere quiet for your team to actually talk.
                     </div>
                 </div>
+
+                {workspaceInvitation && (
+                    <div className="mb-5 w-[340px] border border-line bg-ink-900 px-[14px] py-3 text-[12px] text-dim">
+                        <span className="text-green">→</span> you've been
+                        invited to{' '}
+                        <span className="font-semibold text-amber">
+                            {workspaceInvitation.workspace}
+                        </span>
+                        . Create your account to accept.
+                    </div>
+                )}
 
                 <Form
                     {...store.form()}

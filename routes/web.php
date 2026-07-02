@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AcceptWorkspaceInvitationController;
 use App\Http\Controllers\ChannelController;
+use App\Http\Controllers\DeclineWorkspaceInvitationController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
@@ -12,6 +14,9 @@ use App\Http\Controllers\UserPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceInvitationController;
+use App\Http\Controllers\WorkspaceMemberController;
+use App\Http\Controllers\WorkspaceSettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -24,9 +29,21 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('workspaces', [WorkspaceController::class, 'store'])
         ->name('workspace.store');
 
-    Route::middleware(['workspace.access'])->group(function (): void {
+    // Members & owners may enter a workspace and browse its channels...
+    Route::middleware(['workspace.member'])->group(function (): void {
         Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show'])
             ->name('workspace.show');
+
+        Route::scopeBindings()->group(function (): void {
+            Route::get('workspaces/{workspace}/channels/{channel}', [ChannelController::class, 'show'])
+                ->name('channel.show');
+        });
+    });
+
+    // Only owners may manage a workspace, its channels, members and invitations...
+    Route::middleware(['workspace.access'])->group(function (): void {
+        Route::get('workspaces/{workspace}/settings', WorkspaceSettingsController::class)
+            ->name('workspace.settings');
 
         Route::patch('workspaces/{workspace}', [WorkspaceController::class, 'update'])
             ->name('workspace.update');
@@ -34,14 +51,21 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy'])
             ->name('workspace.destroy');
 
+        // Invitations & Members...
+        Route::post('workspaces/{workspace}/invitations', [WorkspaceInvitationController::class, 'store'])
+            ->name('workspace.invitations.store');
+
+        Route::delete('workspaces/{workspace}/invitations/{invitation}', [WorkspaceInvitationController::class, 'destroy'])
+            ->name('workspace.invitations.destroy');
+
+        Route::delete('workspaces/{workspace}/members/{user}', [WorkspaceMemberController::class, 'destroy'])
+            ->name('workspace.members.destroy');
+
         // Channels...
         Route::post('workspaces/{workspace}/channels', [ChannelController::class, 'store'])
             ->name('channel.store');
 
         Route::scopeBindings()->group(function (): void {
-            Route::get('workspaces/{workspace}/channels/{channel}', [ChannelController::class, 'show'])
-                ->name('channel.show');
-
             Route::patch('workspaces/{workspace}/channels/{channel}', [ChannelController::class, 'update'])
                 ->name('channel.update');
 
@@ -49,6 +73,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('channel.destroy');
         });
     });
+
+    // Workspace Invitations...
+    Route::post('invitations/{invitation}/accept', AcceptWorkspaceInvitationController::class)
+        ->name('invitations.accept');
+
+    Route::delete('invitations/{invitation}', DeclineWorkspaceInvitationController::class)
+        ->name('invitations.decline');
 });
 
 Route::middleware('auth')->group(function (): void {

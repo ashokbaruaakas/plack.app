@@ -18,6 +18,8 @@ final readonly class DeleteWorkspace
     public function handle(Workspace $workspace): void
     {
         DB::transaction(function () use ($workspace): void {
+            $workspace->members()->detach();
+            $workspace->invitations()->delete();
             $workspace->channels()->each(fn (Channel $channel) => $this->deleteChannel->handle($channel));
 
             $workspace->delete();

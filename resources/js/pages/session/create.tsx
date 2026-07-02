@@ -5,10 +5,16 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
+type WorkspaceInvitation = {
+    code: string;
+    workspace: string;
+};
+
 type Props = {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
+    workspaceInvitation?: WorkspaceInvitation | null;
 };
 
 const fieldWrap =
@@ -21,9 +27,14 @@ export default function Login({
     status,
     canResetPassword,
     canRegister,
+    workspaceInvitation,
 }: Props) {
     const [showPw, setShowPw] = useState(false);
     const [remember, setRemember] = useState(true);
+
+    const registerHref = workspaceInvitation
+        ? register.url({ query: { invitation: workspaceInvitation.code } })
+        : register();
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-ink-950 font-mono text-fg">
@@ -41,7 +52,7 @@ export default function Login({
                 <div className="absolute top-6 right-9 z-10 text-xs tracking-[.02em] text-[#5a5344]">
                     new here?{' '}
                     <Link
-                        href={register()}
+                        href={registerHref}
                         className="border-b border-line text-dim transition-colors hover:text-amber"
                     >
                         create a workspace →
@@ -62,6 +73,17 @@ export default function Login({
                         Welcome back. Pick up where you left off.
                     </div>
                 </div>
+
+                {workspaceInvitation && (
+                    <div className="mb-5 w-[340px] border border-line bg-ink-900 px-[14px] py-3 text-[12px] text-dim">
+                        <span className="text-green">→</span> you've been
+                        invited to{' '}
+                        <span className="font-semibold text-amber">
+                            {workspaceInvitation.workspace}
+                        </span>
+                        . Log in to accept.
+                    </div>
+                )}
 
                 {status && (
                     <div className="mb-4 text-[12px] text-green">{status}</div>
@@ -167,7 +189,7 @@ export default function Login({
                                 <div className="mt-3 text-center text-[12.5px] text-mute">
                                     new to plack?{' '}
                                     <Link
-                                        href={register()}
+                                        href={registerHref}
                                         className="border-b border-[#4a3f28] text-amber transition-colors hover:border-amber"
                                     >
                                         create a workspace →

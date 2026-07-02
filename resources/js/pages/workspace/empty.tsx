@@ -1,13 +1,17 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import CreateWorkspaceDialog from '@/components/create-workspace-dialog';
+import PendingInvitations from '@/components/pending-invitations';
 
 /**
  * Shown when the current user has no workspaces yet (e.g. right after
  * registration). The workspace index redirects here instead of listing
  * workspaces — Plack is workspace-scoped, so the one job is to create the
- * first one, after which the index redirects straight into it.
+ * first one, after which the index redirects straight into it. Any pending
+ * invitations are surfaced here so an invited user can join without one.
  */
 export default function WorkspaceEmpty() {
+    const { pendingInvitations } = usePage().props;
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-ink-950 px-10 text-center font-mono">
             <Head title="Create your workspace" />
@@ -28,6 +32,16 @@ export default function WorkspaceEmpty() {
             </div>
 
             <CreateWorkspaceDialog />
+
+            {pendingInvitations.length > 0 && (
+                <div className="w-[320px] border border-line bg-ink-900 px-4 py-4 text-left">
+                    <div className="mb-3 text-center text-[9px] tracking-[.22em] text-mute uppercase">
+                        or accept an invitation
+                    </div>
+
+                    <PendingInvitations invitations={pendingInvitations} />
+                </div>
+            )}
         </div>
     );
 }
